@@ -1,0 +1,52 @@
+﻿@functions{
+    string TypeToImg(string type)
+    {
+        switch(type)
+        {
+            case "FILE":
+                return "<img src=\"insert_drive_file-24px.svg\" style=\"width:24px;height:24px;\">";
+            
+            case "DIRECTORY":
+                return "<img src=\"folder-24px.svg\" style=\"width:24px;height:24px;\">";
+        }
+
+        return type;
+    }
+}
+
+@section Styles{
+    <link rel="stylesheet" href="~/css/upload.css" />
+}
+
+<div class="row">
+    <div class="col-md-12" style="margin-bottom:100px;">
+        <p>
+            Current Directory Path : <span></span>
+        </p>
+        
+        <div style="">
+            <a href="javascript:$;" id="btnToolsetBin">
+                <img src="delete-24px.svg" style="width:24px;height:24px;">
+            </a>
+        </div>
+
+        <p>
+            <img src="create_new_folder-24px.svg" style="width:24px;height:24px;">
+            <input type="text" id="newFolderName">
+            <a href="javascript:$;" id="btnNewFolder">
+                New Folder
+            </a>
+        </p>
+        
+        <h4>Upload</h4>
+
+        AutoUpload : <input type="checkbox" id="checkAutoUpload">
+        <hr>
+        <button id="btnUpload">Upload</button>
+
+        <div class="drag-drop-zone" style="">
+            <p>Drag & Drop file here</p>
+            <input multiple type="file"/>
+        </div>
+    </div>
+</div>

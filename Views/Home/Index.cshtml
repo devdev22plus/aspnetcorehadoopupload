@@ -9,6 +9,9 @@
         </p>
         
         <div style="">
+            <a href="javascript:$;" id="btnSelectAll">
+                Select All
+            </a>
             <a href="javascript:$;" id="btnToolsetBin">
                 <img src="delete-24px.svg" style="width:24px;height:24px;">
             </a>
@@ -536,6 +539,10 @@
                     return false;
                 });
             }
+        });
+
+        $("#btnSelectAll").click(function(){
+            $(".checkSelectFile").prop('checked', true);
         });
     </script>
 }

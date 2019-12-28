@@ -1,4 +1,4 @@
-docker run -d --name aspcoreeasyupload \
+docker run -d --name aspcorehadoopupload \
 -p 80:80 \
-aspcoreeasyupload
+aspcorehadoopupload
 

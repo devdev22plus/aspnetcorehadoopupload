@@ -1,9 +1,9 @@
 #!/bin/bash
 
 
-docker rmi aspcoreeasyupload
+docker rmi aspcorehadoopupload
 docker rmi $(docker images -qf "dangling=true")
-docker rmi $(docker images | grep "aspcoreeasyupload")
+docker rmi $(docker images | grep "aspcorehadoopupload")
 
 
 
@@ -11,4 +11,4 @@ docker rmi $(docker images | grep "aspcoreeasyupload")
 dotnet publish -c Release
 
 
-docker build -t aspcoreeasyupload -f Dockerfile.arm32 ./bin/Release/netcoreapp2.2/publish
+docker build -t aspcorehadoopupload -f Dockerfile.arm32 ./bin/Release/netcoreapp2.1/publish

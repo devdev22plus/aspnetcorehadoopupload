@@ -6,4 +6,4 @@ COPY . .
 
 
 
-CMD ASPNETCORE_URLS=http://*:$PORT dotnet aspcoreeasyupload.dll > dotnet.log
+CMD ASPNETCORE_URLS=http://*:$PORT dotnet aspcorehadoopupload.dll > dotnet.log

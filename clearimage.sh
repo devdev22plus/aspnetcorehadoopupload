@@ -1,6 +1,6 @@
 #!/bin/bash
 
-docker rmi -f aspcoreeasyupload
+docker rmi -f aspcorehadoopupload
 docker rmi -f $(docker images -qf "dangling=true")
 
 if [ $1 ] && [ $1 == 'all' ]

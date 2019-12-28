@@ -106,11 +106,18 @@ namespace aspcorehadoopupload.Controllers
             
 
             string fileName = Path.GetFileName(fileUpload.FileName);
+            string targetPath = path + fileName.MakeValidFileName()
+                                                .Replace(" ", "%20")
+                                                .Replace("(", "%28")
+                                                .Replace(")", "%29")
+                                                .Replace("[", "%20")
+                                                .Replace("]", "%20")
+                                                ;
 
             byte[] buffer = System.IO.File.ReadAllBytes(tempFile);
             System.IO.File.Delete(tempFile);
-            Console.WriteLine("Hadoop URL Upload : " + path + fileName);
-            bool upload = await HadoopAPI.UploadFile(m_HadoopURL, path + fileName, m_URLSwitch, buffer);
+            Console.WriteLine("Hadoop URL Upload : " + targetPath);
+            bool upload = await HadoopAPI.UploadFile(m_HadoopURL, targetPath, m_URLSwitch, buffer);
             if (!upload)
             {
                 failedType = "failed upload to hadoop";

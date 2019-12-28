@@ -301,11 +301,98 @@
             //console.log(progress);
         }
 
-        var uploadCount = 0;
+        var uploadDir = "/";
+        var uploadIndex = 0;
+        function uploadProc()
+        {
+            //console.log("uploadProc #1 : " + uploadIndex);
+            //console.log("uploadProc #2 : " + fileUpload.length);
+
+            for( ; uploadIndex < files.length ; )
+            {
+                if (files[uploadIndex] == null)
+                {
+                    ++uploadIndex;
+                    continue;
+                }
+
+                let index = uploadIndex;
+                let value = files[uploadIndex];
+
+                let formData = new FormData();
+                formData.append("path", uploadDir);
+                formData.append("fileUpload", value);
+
+                let divFileUpload = $(divFiles[index]);
+                //divFileUpload.find("button").remove();
+
+                let p = $(divFiles[index]).find("p");
+                updateStatus = $($(p[1]).find("span")[0]);
+                
+                files[index] = null;
+
+                $.ajax({
+                    type: "POST",
+                    url: "/UploadVideo",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhr: function(){
+                        let xhr = $.ajaxSettings.xhr();
+                        if ( xhr.upload )
+                        {
+                            xhr.upload.addEventListener("progress", uploadProgressHandler, false);
+                        }
+                        return xhr;
+                    },
+                    beforeSend: function (xhr) {
+                    },
+                    error: function(xhr, textStatus, errorThrown){
+                    },
+                    success: function (response) {
+                        let jsonRet = JSON.parse(response);
+                        //console.log(jsonRet);
+                        switch(jsonRet.result)
+                        {
+                            case "OK":
+                            {
+                                if(currentDir == uploadDir)
+                                {
+                                    AddFileList(value.name, "TYPE");
+                                    //ClearFileList();
+                                    //updateCurrentDir();
+                                    //updateFolderList();
+                                }
+
+                                divFileUpload.remove();
+
+                                setTimeout(function(){
+                                    uploadProc();
+                                }, 100);
+                            }
+                            break;
+
+                            default:
+                            {
+                                alert("failed to upload " + value.name);
+                            }
+                        }
+                    }
+                });
+
+                ++uploadIndex;
+                return true;
+            }
+
+            files = [];
+            divFiles = [];
+            $(".uploadControl").show();
+            return false;
+        }
+
         $("#btnUpload").click(function(){
-            let uploadDir = currentDir;
+            uploadDir = currentDir;
             $(".uploadControl").hide();
-            uploadCount = 0;
 
             let fileUpload = [];
             $.each(files, function(index, value){
@@ -321,77 +408,16 @@
             }
             else
             {
-                $.each(files, function(index, value){
-                    if ( value != null )
+                $.each(divFiles, function(index, value){
+                    if(divFiles[index] != null)
                     {
-                        uploadCount++;
-                        let formData = new FormData();
-                        formData.append("path", uploadDir);
-                        formData.append("fileUpload", value);
-
-                        let divFileUpload = $(divFiles[index]);
-                        divFileUpload.find("button").remove();
-
-                        let p = $(divFiles[index]).find("p");
-                        updateStatus = $($(p[1]).find("span")[0]);
-                        
-                        $.ajax({
-                            type: "POST",
-                            url: "/UploadVideo",
-                            data: formData,
-                            processData: false,
-                            contentType: false,
-                            xhr: function(){
-                                let xhr = $.ajaxSettings.xhr();
-                                if ( xhr.upload )
-                                {
-                                    xhr.upload.addEventListener("progress", uploadProgressHandler, false);
-                                }
-                                return xhr;
-                            },
-                            beforeSend: function (xhr) {
-                            },
-                            error: function(xhr, textStatus, errorThrown){
-                            },
-                            success: function (response) {
-                                uploadCount--;
-                                let jsonRet = JSON.parse(response);
-                                //console.log(jsonRet);
-                                switch(jsonRet.result)
-                                {
-                                    case "OK":
-                                    {
-                                        if(currentDir == uploadDir)
-                                        {
-                                            AddFileList(value.name, "TYPE");
-                                            //ClearFileList();
-                                            //updateCurrentDir();
-                                            //updateFolderList();
-                                        }
-
-                                        divFileUpload.remove();
-                                    }
-                                    break;
-
-                                    default:
-                                    {
-                                        alert("failed to upload " + value.name);
-                                    }
-                                }
-
-                                if (uploadCount == 0)
-                                {
-                                    $(".uploadControl").show();
-                                }
-                            }
-                        });
-                        
+                        $(divFiles[index]).find("button").remove();
                     }
                 });
+                
+                uploadIndex = 0;
+                uploadProc();
             }
-
-            files = [];
-            divFiles = [];
 
             return false;
         });
@@ -409,7 +435,7 @@
                     let cc = fileUploadContent.clone(true).appendTo(".uploadFileZone");
                     $(cc).find("input").val(index);
                     let p = $(cc).find("p");
-                    console.log(value);
+                    //console.log(value);
                     //console.log(p);
                     //console.log(p[0]);
                     //console.log($(p[0]).find("span"));

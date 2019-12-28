@@ -11,4 +11,4 @@ docker rmi $(docker images | grep "aspcoreeasyupload")
 dotnet publish -c Release
 
 
-docker build -t aspcoreeasyupload -f Dockerfile.arm32 ./bin/Release/netcoreapp3.1/publish
+docker build -t aspcoreeasyupload -f Dockerfile.arm32 ./bin/Release/netcoreapp2.2/publish

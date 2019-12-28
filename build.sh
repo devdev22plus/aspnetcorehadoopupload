@@ -13,4 +13,4 @@ dotnet publish -c Release
 
 
 #docker
-docker build -t aspcoreeasyupload -f Dockerfile ./bin/Release/netcoreapp3.1/publish
+docker build -t aspcoreeasyupload -f Dockerfile ./bin/Release/netcoreapp2.2/publish

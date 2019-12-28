@@ -84,16 +84,6 @@ namespace aspcorehadoopupload.Controllers
 				goto __FAILED;
 			}
 
-            string tempFile = Path.GetTempFileName();
-			using (FileStream fileStream = System.IO.File.OpenWrite(tempFile))
-			{
-				fileUpload.CopyTo(fileStream);
-			}
-            
-            // Console.WriteLine("path : " + path);
-            // Console.WriteLine("fileUpload.Name : " + fileUpload.Name);
-
-
             if ( path != "/" )
             {
                 path += "/";
@@ -103,6 +93,7 @@ namespace aspcorehadoopupload.Controllers
             
             
             //Console.WriteLine("after path : " + path);
+            
             
 
             string fileName = Path.GetFileName(fileUpload.FileName);
@@ -114,17 +105,54 @@ namespace aspcorehadoopupload.Controllers
                                                 .Replace("]", "%20")
                                                 ;
 
-            byte[] buffer = System.IO.File.ReadAllBytes(tempFile);
-            System.IO.File.Delete(tempFile);
-            Console.WriteLine("Hadoop URL Upload : " + targetPath);
-            bool upload = await HadoopAPI.UploadFile(m_HadoopURL, targetPath, m_URLSwitch, buffer);
-            if (!upload)
+            string tempFile = Path.GetTempFileName();
+			using (FileStream fileStream = System.IO.File.OpenWrite(tempFile))
+			{
+				fileUpload.CopyTo(fileStream);
+			}
+
+            // Console.WriteLine("path : " + path);
+            // Console.WriteLine("fileUpload.Name : " + fileUpload.Name);
+
+            using(var fs = System.IO.File.OpenRead(tempFile))
             {
-                failedType = "failed upload to hadoop";
-				goto __FAILED;
+                byte[] buffer = new byte[10000000];
+                int result = 0;
+                Console.WriteLine("Hadoop URL Upload : " + targetPath);
+
+                {
+                    bool upload = await HadoopAPI.UploadFile(m_HadoopURL, targetPath, m_URLSwitch, null);
+                    if (!upload)
+                    {
+                        failedType = "failed upload to hadoop";
+                        goto __FAILED_DELETE_TEMP_FILE;
+                    }
+                }
+
+                while ((result = await fs.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                {
+                    //Console.WriteLine("Pos : " + fs.Position);
+                    
+                    bool upload = await HadoopAPI.UploadFileAppend(m_HadoopURL, targetPath, m_URLSwitch, buffer);
+                    if (!upload)
+                    {
+                        failedType = "failed write append to hadoop";
+                        goto __FAILED_DELETE_TEMP_FILE;
+                    }
+                }
             }
 
+
+            
+
+            
+
+            System.IO.File.Delete(tempFile);
             return Content(JsonConvert.SerializeObject(new { result = "OK", }));
+
+__FAILED_DELETE_TEMP_FILE:
+            System.IO.File.Delete(tempFile);
+
 __FAILED:
             return Content(JsonConvert.SerializeObject(new { result = "FAILED", failedType = failedType, }));
         }

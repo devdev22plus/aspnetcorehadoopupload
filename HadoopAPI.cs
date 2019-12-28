@@ -81,7 +81,7 @@ public static class HadoopAPI
 
             HttpStatusCode responseHttpStatusCode = HttpStatusCode.NotFound;
             await CallHadoop("PUT", createFile.Location, request => {
-                request.Content = new ByteArrayContent(datas);
+                request.Content = (datas != null) ? new ByteArrayContent(datas) : null;
             }, response => {
                 responseHttpStatusCode = response.StatusCode;
                 responseContent = response.Content.ReadAsStringAsync().Result;
@@ -107,6 +107,45 @@ public static class HadoopAPI
                 break;
             }
         }
+
+        return false;
+    }
+    
+    public static async Task<bool> UploadFileAppend(string hadoopURL, string filePath, IEnumerable<KeyValuePair<string, string>> URLSwitch, byte[] datas)
+    {
+        string dataNodeUrl = "";
+
+        await HadoopAPI.CallHadoop("POST", $"{hadoopURL}webhdfs/v1/{filePath}?op=APPEND", x => {
+        }, x => {
+            if ( x.StatusCode == HttpStatusCode.TemporaryRedirect )
+            {
+                dataNodeUrl = x.Headers.Location.ToString();
+            }
+        });
+
+        if (dataNodeUrl != "")
+        {
+            if(URLSwitch != null)
+            {
+                HDFSResponse.Redirection createFile = new HDFSResponse.Redirection(){ Location = dataNodeUrl, };
+                createFile.URLSwitch(URLSwitch);
+
+                dataNodeUrl = createFile.Location;
+            }
+
+            //Console.WriteLine(dataNodeUrl);
+
+            bool OK = false;
+
+            await HadoopAPI.CallHadoop("POST", dataNodeUrl, request => {
+                request.Content = (datas != null) ? new ByteArrayContent(datas) : null;
+            }, x => {
+                OK = x.StatusCode == HttpStatusCode.OK;
+            });
+
+            return OK;
+        }
+        
 
         return false;
     }

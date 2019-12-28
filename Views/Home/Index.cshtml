@@ -1,20 +1,4 @@
-﻿@functions{
-    string TypeToImg(string type)
-    {
-        switch(type)
-        {
-            case "FILE":
-                return "<img src=\"insert_drive_file-24px.svg\" style=\"width:24px;height:24px;\">";
-            
-            case "DIRECTORY":
-                return "<img src=\"folder-24px.svg\" style=\"width:24px;height:24px;\">";
-        }
-
-        return type;
-    }
-}
-
-@section Styles{
+﻿@section Styles{
     <link rel="stylesheet" href="~/css/upload.css" />
 }
 
@@ -37,16 +21,417 @@
                 New Folder
             </a>
         </p>
+
+        <div class="fileListZone">
+        </div>
         
+        <hr>
         <h4>Upload</h4>
 
-        AutoUpload : <input type="checkbox" id="checkAutoUpload">
-        <hr>
-        <button id="btnUpload">Upload</button>
+        <div class="uploadControl">
+            <button id="btnUpload">Upload</button>
 
-        <div class="drag-drop-zone" style="">
-            <p>Drag & Drop file here</p>
-            <input multiple type="file"/>
+            <div class="drag-drop-zone" style="">
+                <p>Drag & Drop file here</p>
+                <input multiple type="file"/>
+            </div>
+        </div>
+        
+        <p class="updateStatus"></p>
+
+        <div class="uploadFileZone">
+            <div class="border border-secondary p-3">
+                <p>Name: <span></span></p>
+                <p>Size in bytes: <span></span><span></span></p>
+                <p>Last modified date: <span></span></p>
+                <p>Content type: <span></span></p>
+                <input type="hidden">
+                <button>Delete</button>
+            </div>
         </div>
     </div>
 </div>
+
+@section Scripts{
+    <script>
+        var fileUploadContent = $(".uploadFileZone").find("div");
+        //$(".uploadFileZone").remove();
+        fileUploadContent.remove();
+        //fileUploadContent = fileUploadContent.clone(true);
+        //fileUploadContent.appendTo(".uploadFileZone");
+        //console.log(fileUploadContent);
+
+        var files = [];
+        var divFiles = [];
+
+        var currentDir = "/";
+        function updateCurrentDir()
+        {
+            $("#currentDir").text(currentDir);
+        }
+        updateCurrentDir();
+
+        function ClearFileList()
+        {
+            $(".fileListZone").find("p").remove();
+        }
+
+        function AddFileList(filename, filetype)
+        {
+            let img = "";
+            switch(filetype)
+            {
+                case "DIRECTORY":
+                    img = "<img src=\"folder-24px.svg\" style=\"width:24px;height:24px;\">";
+                    break;
+                default:
+                    img = "<img src=\"insert_drive_file-24px.svg\" style=\"width:24px;height:24px;\">";
+                    break;
+            }
+            let add = $("<p><input class=\"checkSelectFile\" type=\"checkbox\"/><a>" + img + "<span class=\"ml-1\"></span></a></p>");
+            add.find("a").attr("href", "javascript:$;");
+            add.find("a").click(function(){
+                if(filetype == "DIRECTORY")
+                {
+                    if (currentDir != "/") currentDir += "/";
+                    currentDir += filename;
+
+                    ClearFileList();
+                    updateCurrentDir();
+                    updateFolderList();
+                }
+                else
+                {
+                    alert("comming soon");
+                }
+            });
+            add.find("a > span").text(filename);
+
+            let bin = $("<a class=\"ml-1\" href=\"javascript:$;\"><img src=\"delete-24px.svg\" style=\"width:24px;height:24px;\"></a>");
+            bin.click(function(){
+                if(confirm("Are you sure to delete " + filename + "?"))
+                {
+                    let cc = currentDir;
+                    if (cc != "/") cc += "/";
+                    cc += filename;
+                    cc = cc.substring(1); // ลบ / เนื่องจากไม่จำเป็นในการส่งข้อมูลออกไป
+                    //console.log("folderName=" + cc);
+
+                    $.ajax({
+                        type : "POST",
+                        url : "/DeleteFile",
+                        data : "path=" + cc,
+                        success : function(response){
+                            let jsonObject = JSON.parse(response);
+                            if (jsonObject.result == true)
+                            {
+                                ClearFileList();
+                                updateCurrentDir();
+                                updateFolderList();
+                            }
+                        }
+                    });
+                }
+            });
+            bin.appendTo(add);
+
+            add.appendTo(".fileListZone");
+        }
+
+        function updateFolderList()
+        {
+            if (currentDir != "/")
+            {
+                let img = "<img src=\"folder-24px.svg\" style=\"width:24px;height:24px;\">";
+                let add = $("<p><a>" + img + "<span class=\"ml-1\"></span></a></p>");
+                add.find("a").attr("href", "javascript:$;");
+                add.find("a").click(function(){
+                    let pos = currentDir.lastIndexOf("/");
+                    if ( pos != -1 )
+                    {
+                        currentDir = currentDir.substr(0, pos);
+                        if ( currentDir == "" ) currentDir = "/";
+
+                        ClearFileList();
+                        updateCurrentDir();
+                        updateFolderList();
+                    }
+                });
+                add.find("a > span").text("..");
+                add.appendTo(".fileListZone");
+            }
+
+            
+            $.ajax({
+                type : "POST",
+                url : "/GetFolderList",
+                data : "path=" + currentDir,
+                success : function(response){
+                    let jsonObject = JSON.parse(response);
+
+                    let dirs = [];
+                    let fss = [];
+
+
+                    $.each(jsonObject, function(index, value){
+                        if(value.type == "DIRECTORY") dirs.push(value);
+                        else fss.push(value);
+
+                        //AddFileList(value.pathSuffix, value.type);
+                    });
+
+                    //dirs.sort();
+                    //fss.sort();
+
+                    /*
+                    dirs.sort(function(item1, item2) {
+                        var val1 = item1.attr,
+                            val2 = item2.attr;
+                        if (val1 == val2) return 0;
+                        if (val1 > val2) return 1;
+                        if (val1 < val2) return -1;
+                    });
+                    */
+
+                    $.each(dirs, function(index, value){
+                        AddFileList(value.pathSuffix, value.type);
+                    });
+
+                    $.each(fss, function(index, value){
+                        AddFileList(value.pathSuffix, value.type);
+                    });
+
+                }
+            });
+
+            
+        }
+        updateFolderList();
+
+        $("#btnNewFolder").click(function(){
+            let newFolderName = $("#newFolderName").val();
+            if (newFolderName != "")
+            {
+                $("#newFolderName").val("");
+
+                let cc = currentDir;
+                if (cc != "/") cc += "/";
+                cc += newFolderName;
+                cc = cc.substring(1); // ลบ / เนื่องจากไม่จำเป็นในการส่งข้อมูลออกไป
+                //console.log("folderName=" + cc);
+
+                $.ajax({
+                    type : "POST",
+                    url : "/CreateNewFolder",
+                    data : "folderName=" + cc,
+                    success : function(response){
+                        let jsonObject = JSON.parse(response);
+                        if (jsonObject.result == true)
+                        {
+                            //currentDir = "/" + cc;
+                            //ClearFileList();
+                            //updateCurrentDir();
+                            //updateFolderList();
+
+                            AddFileList(newFolderName, "DIRECTORY");
+                        }
+                    }
+                });
+            }
+        });
+
+        $("#btnToolsetBin").click(function(){
+            let selectCheck = [];
+            let checkSelectFile = $(".checkSelectFile");
+            if (checkSelectFile != null && checkSelectFile.length > 0)
+            {
+                $.each(checkSelectFile, function(index, value){
+                    if ($(value).is(":checked"))
+                    {
+                        selectCheck.push(value);
+                    }
+                });
+            }
+
+            if (selectCheck != null && selectCheck.length > 0)
+            {
+                if(confirm("Are you sure to delete " + selectCheck.length + " file"))
+                {
+                    $.each(selectCheck, function(index, value){
+                        let fileName = $(value).parent().find("a > span").text();
+
+                        let cc = currentDir;
+                        if (cc != "/") cc += "/";
+                        cc += fileName;
+                        cc = cc.substring(1); // ลบ / เนื่องจากไม่จำเป็นในการส่งข้อมูลออกไป
+                        //console.log("folderName=" + cc);
+
+                        $.ajax({
+                            type : "POST",
+                            url : "/DeleteFile",
+                            data : "path=" + cc,
+                            success : function(response){
+                                let jsonObject = JSON.parse(response);
+                                if (jsonObject.result == true)
+                                {
+                                    $(value).parent().remove();
+                                }
+                            }
+                        });
+                    });
+
+                    //ClearFileList();
+                    //updateCurrentDir();
+                    //updateFolderList();
+                }
+            }
+            else
+            {
+                alert("Please select file to delete");
+            }
+        });
+
+        var updateStatus = null;
+        function uploadProgressHandler(event)
+        {
+            var percent = (event.loaded / event.total) * 100;
+            var progress = Math.round(percent);
+            //let us = $(".updateStatus");
+            updateStatus.text(event.loaded + "/");
+            //console.log(progress);
+        }
+
+        var uploadCount = 0;
+        $("#btnUpload").click(function(){
+            let uploadDir = currentDir;
+            $(".uploadControl").hide();
+            uploadCount = 0;
+
+            let fileUpload = [];
+            $.each(files, function(index, value){
+                if ( value != null )
+                {
+                    fileUpload.push(value);
+                }
+            });
+
+            if (fileUpload.length == 0)
+            {
+                alert("Select file to upload");
+            }
+            else
+            {
+                $.each(files, function(index, value){
+                    if ( value != null )
+                    {
+                        uploadCount++;
+                        let formData = new FormData();
+                        formData.append("path", uploadDir);
+                        formData.append("fileUpload", value);
+
+                        let divFileUpload = $(divFiles[index]);
+                        divFileUpload.find("button").remove();
+
+                        let p = $(divFiles[index]).find("p");
+                        updateStatus = $($(p[1]).find("span")[0]);
+                        
+                        $.ajax({
+                            type: "POST",
+                            url: "/UploadVideo",
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            xhr: function(){
+                                let xhr = $.ajaxSettings.xhr();
+                                if ( xhr.upload )
+                                {
+                                    xhr.upload.addEventListener("progress", uploadProgressHandler, false);
+                                }
+                                return xhr;
+                            },
+                            beforeSend: function (xhr) {
+                            },
+                            error: function(xhr, textStatus, errorThrown){
+                            },
+                            success: function (response) {
+                                uploadCount--;
+                                let jsonRet = JSON.parse(response);
+                                //console.log(jsonRet);
+                                switch(jsonRet.result)
+                                {
+                                    case "OK":
+                                    {
+                                        if(currentDir == uploadDir)
+                                        {
+                                            AddFileList(value.name, "TYPE");
+                                            //ClearFileList();
+                                            //updateCurrentDir();
+                                            //updateFolderList();
+                                        }
+
+                                        divFileUpload.remove();
+                                    }
+                                    break;
+
+                                    default:
+                                    {
+                                        alert("failed to upload " + value.name);
+                                    }
+                                }
+
+                                if (uploadCount == 0)
+                                {
+                                    $(".uploadControl").show();
+                                }
+                            }
+                        });
+                        
+                    }
+                });
+            }
+
+            files = [];
+            divFiles = [];
+
+            return false;
+        });
+
+        $("input[type=file]").on('change', function () {
+            files = $(this).prop('files');
+            divFiles = [];
+            //console.log(files);
+
+            $(".uploadFileZone").find("div").remove();
+
+            if(files.length > 0)
+            {
+                $.each(files, function(index, value){
+                    let cc = fileUploadContent.clone(true).appendTo(".uploadFileZone");
+                    $(cc).find("input").val(index);
+                    let p = $(cc).find("p");
+                    console.log(value);
+                    //console.log(p);
+                    //console.log(p[0]);
+                    //console.log($(p[0]).find("span"));
+                    $(p[0]).find("span").text(value.name);
+                    $($(p[1]).find("span")[0]).text("");
+                    $($(p[1]).find("span")[1]).text(value.size);
+                    $(p[2]).find("span").text(value.lastModified);
+                    $(p[3]).find("span").text(value.type);
+
+                    divFiles[index] = cc;
+                });
+
+                $(".uploadFileZone > div > button").click(function(){
+                    let ind = $(this).parent().find("input[type=hidden]").val();
+                    //console.log(ind);
+                    //console.log(files);
+                    files[ind] = null;
+                    //console.log(files);
+                    $(this).parent().remove();
+                    return false;
+                });
+            }
+        });
+    </script>
+}

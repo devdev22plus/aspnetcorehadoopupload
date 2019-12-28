@@ -108,6 +108,20 @@ __FAILED:
         }
 
 
+
+        [Route("Download"), HttpGet]
+        public async Task<IActionResult> Download(string path)
+        {
+            Stream stream = await HadoopAPI.OpenReadStream(m_HadoopURL, path, m_URLSwitch);
+            if(stream != null)
+            {
+                string downloadFileName = Path.GetFileName(path);
+                return File(stream, "application/octet-stream", downloadFileName);
+            }
+            return NotFound();
+        }
+
+
         [Route("HadoopCheckStatus"), HttpPost]
         public IActionResult HadoopCheckStatus(string key)
         {
@@ -157,6 +171,15 @@ __FAILED:
 
             string fileName = Path.GetFileName(fileUpload.FileName);
             string targetPath = path + ToSafeFileName(fileName);
+
+
+            //ป้องกันไฟล์ซ้ำ
+            HDFSResponse.FileGetStatus fileGetStatus = await HadoopAPI.FileStatus(m_HadoopURL, targetPath);
+            if (fileGetStatus != null)
+            {
+                targetPath += "_A";
+            }
+
 
             string tempFile = Path.GetTempFileName();
 			using (FileStream fileStream = System.IO.File.OpenWrite(tempFile))

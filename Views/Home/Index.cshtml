@@ -137,6 +137,20 @@
             });
             add.find("a > span").text(filename);
 
+            if(filetype == "FILE")
+            {
+                let download = $("<a class=\"ml-1\"><img src=\"cloud_download-24px.svg\" style=\"width:24px;height:24px;\"></a>");
+                {
+                    let cc = currentDir;
+                    if (cc != "/") cc += "/";
+                    cc += filename;
+                    cc = cc.substring(1); // ลบ / เนื่องจากไม่จำเป็นในการส่งข้อมูลออกไป
+                    //console.log("folderName=" + cc);
+                    download.attr("href", "/Download?path=" + cc);
+                }
+                download.appendTo(add);
+            }
+
             let bin = $("<a class=\"ml-1\" href=\"javascript:$;\"><img src=\"delete-24px.svg\" style=\"width:24px;height:24px;\"></a>");
             bin.click(function(){
                 if(confirm("Are you sure to delete " + filename + "?"))

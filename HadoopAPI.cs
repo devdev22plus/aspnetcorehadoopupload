@@ -227,6 +227,26 @@ public static class HadoopAPI
         return byteRet;
     }
 
+    public static async Task<Stream> OpenReadStream(string hadoopURL, string filePath, IEnumerable<KeyValuePair<string, string>> URLSwitch)
+    {
+        Stream stream = null;
+
+        HDFSResponse.Redirection createFile = await HadoopAPI.CallHadoop<HDFSResponse.Redirection>("GET", $"{hadoopURL}webhdfs/v1/{filePath}?op=OPEN&noredirect=true", null, HttpStatusCode.OK);
+        if (createFile != null)
+        {
+            if(URLSwitch != null) createFile.URLSwitch(URLSwitch);
+
+            await CallHadoop("GET", createFile.Location, null, response => {
+                if (response.StatusCode == HttpStatusCode.OK)
+                {
+                    stream = response.Content.ReadAsStreamAsync().Result;
+                }
+            });
+        }
+
+        return stream;
+    }
+
     public static async Task<HDFSResponse.FileStatus[]> GetFileList(string hadoopURL, string filePath)
     {
         HDFSResponse.FileStatus[] files = null;

@@ -63,6 +63,7 @@
         //console.log(fileUploadContent);
 
         var files = [];
+        var filesSkip = [];
         var divFiles = [];
 
         var currentDir = "/";
@@ -325,7 +326,7 @@
 
                         setTimeout(function(){
                             updateHadoopProc();
-                        }, 100);
+                        }, 1000);
                     }
                     else
                     {
@@ -347,6 +348,7 @@
                         if (isUploadLastFile)
                         {
                             files = [];
+                            filesSkip = [];
                             divFiles = [];
                             $(".uploadControl").show();
                         }
@@ -354,7 +356,7 @@
                         {
                             setTimeout(function(){
                                 uploadProc();
-                            }, 100);
+                            }, 1000);
                         }
                     }
                 }
@@ -368,7 +370,7 @@
 
             for( ; uploadIndex < files.length ; )
             {
-                if (files[uploadIndex] == null)
+                if (filesSkip[uploadIndex] == true)
                 {
                     ++uploadIndex;
                     continue;
@@ -376,6 +378,8 @@
 
                 let index = uploadIndex;
                 let value = files[uploadIndex];
+                
+                filesSkip[uploadIndex] = true;
 
                 let formData = new FormData();
                 formData.append("path", uploadDir);
@@ -388,7 +392,6 @@
                 updateStatus = $($(p[1]).find("span")[0]);
                 updateHadoopStatus = $(p[4]);
                 
-                files[index] = null;
 
                 $.ajax({
                     type: "POST",
@@ -441,7 +444,7 @@
         $("#btnUpload").click(function(){
             let fileUpload = [];
             $.each(files, function(index, value){
-                if ( value != null )
+                if ( filesSkip[index] == false )
                 {
                     fileUpload.push(value);
                 }
@@ -474,6 +477,10 @@
         $("input[type=file]").on('change', function () {
             files = $(this).prop('files');
             divFiles = [];
+            filesSkip = [];
+            $.each(files, function(index, value){
+                filesSkip[index] = false;
+            });
             //console.log(files);
 
             $(".uploadFileZone").find("div").remove();
@@ -491,18 +498,15 @@
                     $(p[0]).find("span").text(value.name);
                     $($(p[1]).find("span")[0]).text("");
                     $($(p[1]).find("span")[1]).text(value.size);
-                    $(p[2]).find("span").text(value.lastModified);
+                    $(p[2]).find("span").text(new Date(value.lastModified).toLocaleDateString() + " " + new Date(value.lastModified).toLocaleTimeString());
                     $(p[3]).find("span").text(value.type);
 
                     divFiles[index] = cc;
                 });
 
                 $(".uploadFileZone > div > button").click(function(){
-                    let ind = $(this).parent().find("input[type=hidden]").val();
-                    //console.log(ind);
-                    //console.log(files);
-                    files[ind] = null;
-                    //console.log(files);
+                    let ind = parseInt($(this).parent().find("input[type=hidden]").val());
+                    filesSkip[ind] = true;
                     $(this).parent().remove();
                     return false;
                 });

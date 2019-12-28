@@ -55,6 +55,11 @@
 
 @section Scripts{
     <script>
+        function toDateTimeString(dd)
+        {
+            return new Date(dd).toLocaleDateString() + " " + new Date(dd).toLocaleTimeString()
+        }
+
         var fileUploadContent = $(".uploadFileZone").find("div");
         //$(".uploadFileZone").remove();
         fileUploadContent.remove();
@@ -104,7 +109,27 @@
                 }
                 else
                 {
-                    alert("comming soon");
+                    let pp = currentDir;
+                    if (pp != "/") pp += "/";
+                    //pp += filename;
+                    pp = pp.substr(1);
+                    //console.log(pp);
+
+                    $.ajax({
+                        type: "POST",
+                        url: "/CheckFileStatus",
+                        data: "currentDir=" + pp + "&fileName=" + filename,
+                        success : function(response){
+                            let jsonObject = JSON.parse(response);
+                            if (jsonObject.result == "OK")
+                            {
+                                let dd = JSON.parse(jsonObject.data);
+                                //console.log(dd);
+
+                                alert("file name: " + filename + "\r\nfile size: " + dd.fileStatus.length + "\r\naccessTime: " + toDateTimeString(dd.fileStatus.accessTime) + "\r\nmodificationTime: " + toDateTimeString(dd.fileStatus.modificationTime) + "\r\npermission: " + dd.fileStatus.permission);
+                            }
+                        }
+                    });
                 }
             });
             add.find("a > span").text(filename);
@@ -498,7 +523,7 @@
                     $(p[0]).find("span").text(value.name);
                     $($(p[1]).find("span")[0]).text("");
                     $($(p[1]).find("span")[1]).text(value.size);
-                    $(p[2]).find("span").text(new Date(value.lastModified).toLocaleDateString() + " " + new Date(value.lastModified).toLocaleTimeString());
+                    $(p[2]).find("span").text(toDateTimeString(value.lastModified));
                     $(p[3]).find("span").text(value.type);
 
                     divFiles[index] = cc;

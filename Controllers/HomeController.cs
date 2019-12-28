@@ -82,6 +82,32 @@ namespace aspcorehadoopupload.Controllers
         }
 
 
+        string ToSafeFileName(string fileName)
+        {
+            return fileName.MakeValidFileName()
+                                            .Replace(" ", "%20")
+                                            .Replace("(", "%28")
+                                            .Replace(")", "%29")
+                                            .Replace("[", "%20")
+                                            .Replace("]", "%20")
+                                            ;
+        }
+
+
+        [Route("CheckFileStatus"), HttpPost]
+        public async Task<IActionResult> CheckFileStatus(string currentDir, string fileName)
+        {
+            HDFSResponse.FileGetStatus fileGetStatus = await HadoopAPI.FileStatus(m_HadoopURL, currentDir + ToSafeFileName(fileName));
+            if (fileGetStatus != null)
+            {
+                return Content(JsonConvert.SerializeObject(new { result = "OK", data = JsonConvert.SerializeObject(fileGetStatus), }));
+            }
+
+__FAILED:
+            return Content(JsonConvert.SerializeObject(new { result = "FAILED", }));
+        }
+
+
         [Route("HadoopCheckStatus"), HttpPost]
         public IActionResult HadoopCheckStatus(string key)
         {
@@ -130,13 +156,7 @@ __FAILED:
             
 
             string fileName = Path.GetFileName(fileUpload.FileName);
-            string targetPath = path + fileName.MakeValidFileName()
-                                                .Replace(" ", "%20")
-                                                .Replace("(", "%28")
-                                                .Replace(")", "%29")
-                                                .Replace("[", "%20")
-                                                .Replace("]", "%20")
-                                                ;
+            string targetPath = path + ToSafeFileName(fileName);
 
             string tempFile = Path.GetTempFileName();
 			using (FileStream fileStream = System.IO.File.OpenWrite(tempFile))
@@ -182,8 +202,11 @@ __FAILED:
                     while ((result = await fs.ReadAsync(buffer, 0, buffer.Length)) > 0)
                     {
                         //Console.WriteLine("Pos : " + fs.Position);
+
+                        byte[] outBuffer = new byte[result];
+                        Buffer.BlockCopy(buffer, 0, outBuffer, 0, result);
                     
-                        bool upload = await HadoopAPI.UploadFileAppend(m_HadoopURL, targetPath, m_URLSwitch, buffer);
+                        bool upload = await HadoopAPI.UploadFileAppend(m_HadoopURL, targetPath, m_URLSwitch, outBuffer);
                         if (!upload)
                         {
                             failedType = "failed write append to hadoop";

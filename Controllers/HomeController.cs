@@ -72,7 +72,7 @@ namespace aspcorehadoopupload.Controllers
 		//[RequestSizeLimit(2000000000)]
 		//[RequestFormLimits(ValueLengthLimit = 2000000000, MultipartBodyLengthLimit = 2000000000)]
 		[DisableRequestSizeLimit]
-		[RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = int.MaxValue)]
+		[RequestFormLimits(ValueLengthLimit = int.MaxValue, MultipartBodyLengthLimit = long.MaxValue)]
 		[Route("UploadVideo"), HttpPost]
 		public async Task<IActionResult> UploadVideo(string path, IFormFile fileUpload)
         {

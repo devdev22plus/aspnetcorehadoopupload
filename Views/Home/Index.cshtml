@@ -45,6 +45,7 @@
                 <p>Size in bytes: <span></span><span></span></p>
                 <p>Last modified date: <span></span></p>
                 <p>Content type: <span></span></p>
+                <p></p>
                 <input type="hidden">
                 <button>Delete</button>
             </div>
@@ -292,6 +293,7 @@
         });
 
         var updateStatus = null;
+        var updateHadoopStatus = null;
         function uploadProgressHandler(event)
         {
             var percent = (event.loaded / event.total) * 100;
@@ -301,8 +303,64 @@
             //console.log(progress);
         }
 
+        var hadoopKey = "";
         var uploadDir = "/";
         var uploadIndex = 0;
+        var uploadFileName = "";
+        var divFileUpload = null;
+        var isUploadLastFile = false;
+
+        function updateHadoopProc()
+        {
+            $.ajax({
+                type : "POST",
+                url : "/HadoopCheckStatus",
+                data : "key=" + hadoopKey,
+                success : function(response){
+                    let jsonObject = JSON.parse(response);
+                    if (jsonObject.result == "OK")
+                    {
+                        let jj = JSON.parse(jsonObject.data);
+                        updateHadoopStatus.text("Hadoop Progress: " + jj.position + "/" + jj.size);
+
+                        setTimeout(function(){
+                            updateHadoopProc();
+                        }, 100);
+                    }
+                    else
+                    {
+                        //maybe finished
+                        if(currentDir == uploadDir)
+                        {
+                            if (uploadFileName != "")
+                            {
+                                AddFileList(uploadFileName, "TYPE");
+                                uploadFileName = "";
+                            }
+                            //ClearFileList();
+                            //updateCurrentDir();
+                            //updateFolderList();
+                        }
+
+                        divFileUpload.remove();
+
+                        if (isUploadLastFile)
+                        {
+                            files = [];
+                            divFiles = [];
+                            $(".uploadControl").show();
+                        }
+                        else
+                        {
+                            setTimeout(function(){
+                                uploadProc();
+                            }, 100);
+                        }
+                    }
+                }
+            });
+        }
+        
         function uploadProc()
         {
             //console.log("uploadProc #1 : " + uploadIndex);
@@ -323,17 +381,18 @@
                 formData.append("path", uploadDir);
                 formData.append("fileUpload", value);
 
-                let divFileUpload = $(divFiles[index]);
+                divFileUpload = $(divFiles[index]);
                 //divFileUpload.find("button").remove();
 
                 let p = $(divFiles[index]).find("p");
                 updateStatus = $($(p[1]).find("span")[0]);
+                updateHadoopStatus = $(p[4]);
                 
                 files[index] = null;
 
                 $.ajax({
                     type: "POST",
-                    url: "/UploadVideo",
+                    url: "/UploadFile",
                     data: formData,
                     processData: false,
                     contentType: false,
@@ -351,24 +410,14 @@
                     },
                     success: function (response) {
                         let jsonRet = JSON.parse(response);
-                        //console.log(jsonRet);
                         switch(jsonRet.result)
                         {
                             case "OK":
                             {
-                                if(currentDir == uploadDir)
-                                {
-                                    AddFileList(value.name, "TYPE");
-                                    //ClearFileList();
-                                    //updateCurrentDir();
-                                    //updateFolderList();
-                                }
+                                hadoopKey = jsonRet.key;
 
-                                divFileUpload.remove();
-
-                                setTimeout(function(){
-                                    uploadProc();
-                                }, 100);
+                                uploadFileName = value.name;
+                                updateHadoopProc();
                             }
                             break;
 
@@ -383,17 +432,13 @@
                 ++uploadIndex;
                 return true;
             }
-
-            files = [];
-            divFiles = [];
-            $(".uploadControl").show();
+            
+            isUploadLastFile = true;
+            updateHadoopProc();
             return false;
         }
 
         $("#btnUpload").click(function(){
-            uploadDir = currentDir;
-            $(".uploadControl").hide();
-
             let fileUpload = [];
             $.each(files, function(index, value){
                 if ( value != null )
@@ -408,6 +453,9 @@
             }
             else
             {
+                uploadDir = currentDir;
+                $(".uploadControl").hide();
+                
                 $.each(divFiles, function(index, value){
                     if(divFiles[index] != null)
                     {
@@ -415,6 +463,7 @@
                     }
                 });
                 
+                isUploadLastFile = false;
                 uploadIndex = 0;
                 uploadProc();
             }

@@ -377,7 +377,17 @@
                         {
                             if (uploadFileName != "")
                             {
-                                AddFileList(uploadFileName, "FILE");
+                                $.ajax({
+                                    type : "POST",
+                                    url : "/MakeToSafe",
+                                    data : "data=" + uploadFileName,
+                                    success : function(rrrr){
+                                        let jjjj = JSON.parse(rrrr);
+                                        AddFileList(jjjj.result, "FILE");
+                                    }
+                                );
+                                
+                                //AddFileList(uploadFileName, "FILE");
                                 uploadFileName = "";
                             }
                             //ClearFileList();

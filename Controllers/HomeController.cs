@@ -93,6 +93,12 @@ namespace aspcorehadoopupload.Controllers
                                             ;
         }
 
+        [Route("MakeToSafe"), HttpPost]
+        public IActionResult MakeToSafe(string data)
+        {
+            return Content(JsonConvert.SerializeObject(new { result = ToSafeFileName(data), }));
+        }
+
 
         [Route("CheckFileStatus"), HttpPost]
         public async Task<IActionResult> CheckFileStatus(string currentDir, string fileName)
